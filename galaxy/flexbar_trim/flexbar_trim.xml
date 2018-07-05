@@ -1,17 +1,18 @@
-<tool id="flexbar_trim" name="flexbar_trim" version="3.4.0"> profile="17.01">
-    <description>- flexible barcode and adapter removal</description>
-    <macros>
-        <import>flexbar_trim_macros.xml</import>
-    </macros>
-    <requirements>
-    </requirements>
-    <stdio>
-        <regex level="fatal" match="flexbar: command not found" source="both" />
-        <regex level="fatal" match="Error: single read in paired mode, or file reading error!" source="both" />
+<tool id="flexbar_trim" name="flexbar_trim" version="3.4.0" profile="17.01">
+  <description>- flexible barcode and adapter removal</description>
+  <macros>
+    <import>flexbar_trim_macros.xml</import>
+  </macros>
+  <requirements>
+  </requirements>
+  <stdio>
+    <regex level="fatal" match="flexbar: command not found" source="both" />
+    <regex level="fatal" match="Error: single read in paired mode, or file reading error!" source="both" />
         <exit_code range="1:" />
-    </stdio>
-    <version_command>flexbar --versions | grep flexbar</version_command>
-    <command><![CDATA[
+  </stdio>
+  <version_command>flexbar --versions | grep flexbar</version_command>
+  <command><![CDATA[
+
 ## Use pipefail if available to quit with first non-zero exit code
 set -o | grep -q pipefail && set -o pipefail;
 
@@ -91,8 +92,14 @@ echo "flexbar --reads '${read1}'
         --stdout-reads
         --adapters '${tso_adapters}'
         --adapter-trim-end ${tso_adapter_trim_end}
-        --adapter-revcomp ${tso_adapter_revcomp}
-        --adapter-revcomp-end ${tso_adapter_revcomp_end}
+
+## TSO: adapter revcomp options
+
+#if str($adv.tso_adapter_revcomp_options.tso_adapter_revcomp_options_selector) == "advanced":
+    --adapter-revcomp ${adv.tso_adapter_revcomp_options.tso_adapter_revcomp}
+    --adapter-revcomp-end ${adv.tso_adapter_revcomp_options.tso_adapter_revcomp_end}
+#end if
+
         --htrim-left '${tso_htrim_left}'
         --htrim-right '${tso_htrim_right}'
         --htrim-min-length ${tso_htrim_min_length}
@@ -119,119 +126,137 @@ echo "flexbar --reads '${read1}'
         
         echo 'log Illumina' > output_reads.log
         
-    ]]></command>
-
-    <!-- Define inputs -->
-
-    <inputs>
+        ]]>
+  </command>
+  
+  <!-- Define inputs -->
+  
+  <inputs>
+    
+    <!-- Reads -->
+    
+    <conditional name="library">
+      <param name="type" type="select" label="Input reads">
+        <option value="paired_collection">Paired-end Collection</option>
+        <option value="paired">Paired-end</option>
+      </param>
       
-      <!-- Reads -->
-      <conditional name="library">
-        <param name="type" type="select" label="Input reads">
-          <option value="paired_collection">Paired-end Collection</option>
-          <option value="paired">Paired-end</option>
+      <when value="paired">
+        <param name="input_1" argument="--reads" format="fastqsanger,fastqsanger.gz,fastqsanger.bz2,fasta" type="data" label="FASTA/Q file #1" help="Must be of datatype &quot;fastqsanger&quot;or &quot;fasta&quot;" />
+        <param name="input_2" argument="--reads2" format="fastqsanger,fastqsanger.gz,fastqsanger.bz2,fasta" type="data" label="FASTA/Q file #2" help="Must be of datatype &quot;fastqsanger&quot;or &quot;fasta&quot;" />
+      </when>
+      
+      <when value="paired_collection">
+        <param name="input_1" argument="--reads" format="fastqsanger,fastqsanger.gz,fastqsanger.bz2,fasta" type="data_collection" collection_type="paired" label="Paired Collection" help="Must be of datatype &quot;fastqsanger&quot; or &quot;fasta&quot;" />
+      </when>
+    </conditional>
+      
+    <!-- TSO adapters -->
+    
+    <param name="tso_adapters" argument="--adapters" format="fasta" type="data" label="TSO: Fasta file with adapters for removal that may contain N." />
+    
+    <param name="tso_adapter_trim_end" argument="--adapter-trim-end" type="select" display="radio" label="TSO: Type of removal">
+      <option value="ANY">ANY: longer side of read remains after removal of overlap</option>
+      <option value="LEFT" selected="true">LEFT: right side remains after removal, align &lt;= read end</option>
+      <option value="RIGHT">RIGHT: left part remains after removal, align &gt;= read start</option>
+      <option value="LTAIL">LTAIL: consider first n bases of reads in alignment</option>
+      <option value="RTAIL">RTAIL: use only last n bases, see tail-length options</option>
+    </param>
+    
+    <!-- Advanced Options  -->
+    
+    <section name="adv" title="Advanced Options" expanded="False">
+      <conditional name="tso_adapter_revcomp_options">
+        <param name="tso_adapter_revcomp_options_selector" type="select" label="TSO: adapter revcomp options">
+          <option value="skip">Skip TSO: adapter revcomp options</option>
+          <option value="advanced" selected="true">Specify TSO: adapter revcomp options</option>
         </param>
-        
-        <when value="paired">
-          <param name="input_1" argument="--reads" format="fastqsanger,fastqsanger.gz,fastqsanger.bz2,fasta" type="data" label="FASTA/Q file #1" help="Must be of datatype &quot;fastqsanger&quot;or &quot;fasta&quot;" />
-          <param name="input_2" argument="--reads2" format="fastqsanger,fastqsanger.gz,fastqsanger.bz2,fasta" type="data" label="FASTA/Q file #2" help="Must be of datatype &quot;fastqsanger&quot;or &quot;fasta&quot;" />
-        </when>
-        
-        <when value="paired_collection">
-          <param name="input_1" argument="--reads" format="fastqsanger,fastqsanger.gz,fastqsanger.bz2,fasta" type="data_collection" collection_type="paired" label="Paired Collection" help="Must be of datatype &quot;fastqsanger&quot; or &quot;fasta&quot;" />
+        <when value="skip" />
+        <when value="advanced">
+          
+          <param name="tso_adapter_revcomp" argument="--adapter-revcomp" type="select" display="radio" label="TSO: Include reverse complements of adapters.">
+            <option value="ON" selected="true">ON</option>
+            <option value="ONLY">ONLY</option>
+          </param>
+          
+          <param name="tso_adapter_revcomp_end" argument="--adapter-revcomp-end" type="select" display="radio" label="TSO: Use different trim-end for reverse complements of adapters.">
+            <option value="ANY">ANY: longer side of read remains after removal of overlap</option>
+            <option value="LEFT">LEFT: right side remains after removal, align &lt;= read end</option>
+            <option value="RIGHT" selected="true">RIGHT: left part remains after removal, align &gt;= read start</option>
+            <option value="LTAIL">LTAIL: consider first n bases of reads in alignment</option>
+            <option value="RTAIL">RTAIL: use only last n bases, see tail-length options</option>
+          </param>
+          
         </when>
       </conditional>
-      
-      <!-- TSO adapters -->
-      
-      <param name="tso_adapters" argument="--adapters" type="data" format="fasta" label="TSO: Fasta file with adapters for removal that may contain N." />
-
-      <param name="tso_adapter_trim_end" argument="--adapter-trim-end" type="select" display="radio" label="TSO: Type of removal">
-        <option value="ANY">ANY: longer side of read remains after removal of overlap</option>
-        <option value="LEFT" selected="true">LEFT: right side remains after removal, align &lt;= read end</option>
-        <option value="RIGHT">RIGHT: left part remains after removal, align &gt;= read start</option>
-        <option value="LTAIL">LTAIL: consider first n bases of reads in alignment</option>
-        <option value="RTAIL">RTAIL: use only last n bases, see tail-length options</option>
-      </param>
-
-      <param name="tso_adapter_revcomp" argument="--adapter-revcomp" type="select" display="radio" label="TSO: Include reverse complements of adapters.">
-        <option value="ON" selected="true">ON</option>
-        <option value="ONLY">ONLY</option>
-      </param>
-
-      <param name="tso_adapter_revcomp_end" argument="--adapter-revcomp-end" type="select" display="radio" label="TSO: Use different trim-end for reverse complements of adapters.">
-        <option value="ANY">ANY: longer side of read remains after removal of overlap</option>
-        <option value="LEFT">LEFT: right side remains after removal, align &lt;= read end</option>
-        <option value="RIGHT" selected="true">RIGHT: left part remains after removal, align &gt;= read start</option>
-        <option value="LTAIL">LTAIL: consider first n bases of reads in alignment</option>
-        <option value="RTAIL">RTAIL: use only last n bases, see tail-length options</option>
-      </param>
-
-      <param name="tso_htrim_left" argument="--htrim-left" type="text" value="GT" label="TSO: Trim specific homopolymers on left read end after removal." />
-
-      <param name="tso_htrim_right" argument="--htrim-right" type="text" value="CA" label="TSO: Trim specific homopolymers on right read end after removal." />
-
-      <param name="tso_htrim_min_length" argument="--htrim-min-length" type="integer" value="3" label="TSO: Minimum length of homopolymers at read ends." />
-      
-      <param name="tso_htrim_max_length" argument="--htrim-max-length" type="integer" value="5" label="TSO: Maximum length of homopolymers on left and right read end." />
-      
-      <param name="tso_htrim_max_first" argument="--htrim-max-first" type="boolean" truevalue="--htrim-max-first" falsevalue="" checked="True" label="TSO: Apply maximum length of homopolymers only for first one." />
-
-      <param name="tso_htrim_adapter" argument="--htrim-adapter" type="boolean" truevalue="--htrim-adapter" falsevalue="" checked="True" label="TSO: Trim only in case of adapter removal on same side." />
-      
-      <param name="tso_min_read_length" argument="--min-read-length" type="integer" value="2" label="TSO: Minimum read length to remain after removal." />
-      
-      <!-- Illumina adapters -->
-      
-      <param name="illumina_adapters" argument="--adapters" type="data" format="fasta" label="Illumina: Fasta file with adapters for removal that may contain N." />
-
-      <param name="ilm_adapter_trim_end" argument="--adapter-trim-end" type="select" display="radio" label="Illumina: Type of removal">
-        <option value="ANY">ANY: longer side of read remains after removal of overlap</option>
-        <option value="LEFT">LEFT: right side remains after removal, align &lt;= read end</option>
-        <option value="RIGHT" selected="true">RIGHT: left part remains after removal, align &gt;= read start</option>
-        <option value="LTAIL">LTAIL: consider first n bases of reads in alignment</option>
-        <option value="RTAIL">RTAIL: use only last n bases, see tail-length options</option>
-      </param>
-      
-      <param name="ilm_min_read_length" argument="--min-read-length" type="integer" value="2" label="Illumina: Minimum read length to remain after removal." />
-      
-    </inputs>
-
-    <!-- Define outputs -->
-
-    <outputs>
-
-        <!-- Reads -->
-
-        <data name="output_1" format="fastqsanger" metadata_source="library.input_1" from_work_dir="output_reads_1*" label="${tool.name} on ${on_string}: Read 1 output">
-          <expand macro="inherit_format_1" />
-        </data>
-
-        <data name="output_2" format="fastqsanger" metadata_source="library.input_2" from_work_dir="output_reads_2*" label="${tool.name} on ${on_string}: Read 2 output">
-          <expand macro="inherit_format_2" />
-        </data>
-
-        <!-- Log files -->
-        
-        <data name="tso_log"  format="txt" from_work_dir="flexbarOut.log" label="${tool.name} on ${on_string}: TSO: trimming log file">
-        </data>
-        
-        <data name="ilm_log"  format="txt" from_work_dir="output_reads.log" label="${tool.name} on ${on_string}: Illumina: trimming log file">
-        </data>
-        
-    </outputs>
-
-    <help><![CDATA[
+    </section>
     
+    <param name="tso_htrim_left" argument="--htrim-left" type="text" value="GT" label="TSO: Trim specific homopolymers on left read end after removal." />
+    
+    <param name="tso_htrim_right" argument="--htrim-right" type="text" value="CA" label="TSO: Trim specific homopolymers on right read end after removal." />
+    
+    <param name="tso_htrim_min_length" argument="--htrim-min-length" type="integer" value="3" label="TSO: Minimum length of homopolymers at read ends." />
+    
+    <param name="tso_htrim_max_length" argument="--htrim-max-length" type="integer" value="5" label="TSO: Maximum length of homopolymers on left and right read end." />
+    
+    <param name="tso_htrim_max_first" argument="--htrim-max-first" type="boolean" truevalue="--htrim-max-first" falsevalue="" checked="True" label="TSO: Apply maximum length of homopolymers only for first one." />
+    
+    <param name="tso_htrim_adapter" argument="--htrim-adapter" type="boolean" truevalue="--htrim-adapter" falsevalue="" checked="True" label="TSO: Trim only in case of adapter removal on same side." />
+    
+    <param name="tso_min_read_length" argument="--min-read-length" type="integer" value="2" label="TSO: Minimum read length to remain after removal." />
+    
+    <!-- Illumina adapters -->
+    
+    <param name="illumina_adapters" argument="--adapters" format="fasta" type="data" label="Illumina: Fasta file with adapters for removal that may contain N." />
+    
+    <param name="ilm_adapter_trim_end" argument="--adapter-trim-end" type="select" display="radio" label="Illumina: Type of removal">
+      <option value="ANY">ANY: longer side of read remains after removal of overlap</option>
+      <option value="LEFT">LEFT: right side remains after removal, align &lt;= read end</option>
+      <option value="RIGHT" selected="true">RIGHT: left part remains after removal, align &gt;= read start</option>
+      <option value="LTAIL">LTAIL: consider first n bases of reads in alignment</option>
+      <option value="RTAIL">RTAIL: use only last n bases, see tail-length options</option>
+    </param>
+    
+    <param name="ilm_min_read_length" argument="--min-read-length" type="integer" value="2" label="Illumina: Minimum read length to remain after removal." />
+    
+  </inputs>
+  
+  <!-- Define outputs -->
+  
+  <outputs>
+    
+    <!-- Reads -->
+    
+    <data name="output_1" format="fastqsanger" metadata_source="library.input_1" from_work_dir="output_reads_1*" label="${tool.name} on ${on_string}: Read 1 output">
+      <expand macro="inherit_format_1" />
+    </data>
+    
+    <data name="output_2" format="fastqsanger" metadata_source="library.input_2" from_work_dir="output_reads_2*" label="${tool.name} on ${on_string}: Read 2 output">
+      <expand macro="inherit_format_2" />
+    </data>
+    
+    <!-- Log files -->
+    
+    <data name="tso_log"  format="txt" from_work_dir="flexbarOut.log" label="${tool.name} on ${on_string}: TSO: trimming log file">
+    </data>
+    
+    <data name="ilm_log"  format="txt" from_work_dir="output_reads.log" label="${tool.name} on ${on_string}: Illumina: trimming log file">
+    </data>
+    
+  </outputs>
+  
+  <help><![CDATA[
+  
 `Flexbar <https://github.com/seqan/flexbar>`__ is a flexible barcode
 and adapter removal program.
 
 Refer to the `Flexbar manual <https://github.com/seqan/flexbar/wiki>`__
 for help with usage.
 
-    ]]></help>
-    <citations>
-        <citation type="doi">10.1093/bioinformatics/btx330</citation>
-        <citation type="doi">10.3390/biology1030895</citation>
-    </citations>
+]]>
+  </help>
+  <citations>
+    <citation type="doi">10.1093/bioinformatics/btx330</citation>
+    <citation type="doi">10.3390/biology1030895</citation>
+  </citations>
 </tool>
