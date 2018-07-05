@@ -1,0 +1,44 @@
+<macros>
+
+  <!-- Code below is adapted from cutadapt tool. Commented to prevent tool from failing with error: Dataset collection has no element_identifier with key forward. Waiting for https://github.com/galaxyproject/galaxy/pull/6253. As a temporary workaround, using default format="fastqsanger" -->
+  
+        <xml name="inherit_format_1">
+            <!-- <actions> -->
+            <!--     <conditional name="library.type"> -->
+            <!--         <when value="single"> -->
+            <!--             <action type="format"> -->
+            <!--                 <option type="from_param" name="library.input_1" param_attribute="ext" /> -->
+            <!--             </action> -->
+            <!--         </when> -->
+            <!--         <when value="paired"> -->
+            <!--             <action type="format"> -->
+            <!--                 <option type="from_param" name="library.input_1" param_attribute="ext" /> -->
+            <!--             </action> -->
+            <!--         </when> -->
+            <!--         <when value="paired_collection"> -->
+            <!--             <action type="format"> -->
+            <!--                 <option type="from_param" name="library.input_1" param_attribute="forward.ext" /> -->
+            <!--             </action> -->
+            <!--         </when> -->
+            <!--     </conditional> -->
+            <!-- </actions> -->
+        </xml>
+
+        <xml name="inherit_format_2">
+            <!-- <actions> -->
+            <!--     <conditional name="library.type"> -->
+            <!--         <when value="paired"> -->
+            <!--             <action type="format"> -->
+            <!--                 <option type="from_param" name="library.input_2" param_attribute="ext" /> -->
+            <!--             </action> -->
+            <!--         </when> -->
+            <!--         <when value="paired_collection"> -->
+            <!--             <action type="format"> -->
+            <!--                 <option type="from_param" name="library.input_1" param_attribute="reverse.ext" /> -->
+            <!--             </action> -->
+            <!--         </when> -->
+            <!--     </conditional> -->
+            <!-- </actions> -->
+        </xml>
+
+</macros>
